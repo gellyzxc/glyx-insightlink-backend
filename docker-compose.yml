@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+    container_name: glyx-insightlink-laravel
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    environment:
+      PHP_OPCACHE_VALIDATE_TIMESTAMPS: 1
+    depends_on:
+      - postgres
+      - redis
+      - clickhouse
+    networks:
+      - insightnet
+    ports:
+      - "8000:8000"
+    command: php artisan serve --host=0.0.0.0
+#    command: php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000
+
+  postgres:
+    image: postgres:15
+    container_name: glyx-insightlink-pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: insightlink
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - insightnet
+
+  redis:
+    image: redis:alpine
+    container_name: glyx-insightlink-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - insightnet
+
+  clickhouse:
+    image: yandex/clickhouse-server
+    container_name: glyx-insightlink-ch
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - chdata:/var/lib/clickhouse
+    environment:
+        CLICKHOUSE_DB: default
+        CLICKHOUSE_USER: default
+        CLICKHOUSE_PASSWORD: ""
+    networks:
+      - insightnet
+
+networks:
+  insightnet:
+    driver: bridge
+
+volumes:
+  pgdata:
+  chdata:
